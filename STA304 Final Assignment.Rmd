@@ -1,0 +1,118 @@
+---
+title: "STA304 Final Assignment - "
+author: "Jiafei Lyu"
+date: "20/12/2020"
+output: html_document
+---
+
+# Investivation of the Association between Household Income and Intention Voting for Donald Trump of the 2020 American Federal Election Using Instrumental Variable Estimation
+
+## By Jiafei Lyu(1005004727)
+## Date: Dec 22, 2020
+
+# Abstract
+The idea of the studied topic is driven by the method - Instrumental Variable discussed in the last week of lectures. Using datasets derived from Problem Set 3, to investigate the association between household income and intention of voting Donald Trump through instrumental variable approach. The treatment will be different levels of household income, outcome will be whether or not vote for Trump, and the instrument variable will be the different levels of education backgrounds. 
+
+# Keywords
+2020 American Federal Election, Regression Model, Instrumental Variable(IV), Casual Inference, Educational Level, Household Income
+
+# Introduction
+Statistical approach of prediction and study of association between different factors against outcomes can be crucial for understanding the key to win the election. By knowing the characteristics among different classes of people, the candidate group may know which class they need to place extra emphasis on to get a better chance of winning the election. Starting off with knowing the voting intentions of different levels of household income can help they know the casual inference in both economical and educational perspectives. 
+
+Instrumental variable is used in regression model where you have endogenous variables, and it is used to account for unexpected behavior between variables(https://www.statisticshowto.com/instrumental-variable/#:~:text=An%20instrumental%20variable%20(sometimes%20called,for%20unexpected%20behavior%20between%20variables.). It is widely used in statistical, economical and epidermal studies when controlled experiments are not practical. IVs can be used to uncover the hidden correlation between explanatory variable and outcome variable. In this report, I will use instrumental variable "education" to estimate the association between household income and intention of voting for Trump. 
+
+Household income is used as the treatment in this case and it has 24 different levels. Whether or not voting for Trump is the outcome, it has value 0 or 1. The instrumental variable is education level, it has five levels: Grade 12&under, highschool, college degree, Master&Doc, associated degree. Education level is chosen to be the instrumental variable because it is correlated with the outcome but it does not have a causal effect on the outcome. But it has causal effect on the treatment as we can assume that more educated people may have higher household income. In provided datasets, the instrumental variable is randomly assigned and not correlated with any other factors except for the treatment. 
+
+The data "survey_data" derived from Problem Set 3 will be used to make the estimation here to establish causal inference and find out hidden correlations between treatment and outcome. Data, model and instrumental variable approach will be introduced in the Methodology section. Results of the instrumental variable estimation will be presented in the Result section. Summary and conclusion, including weakness and next steps, will be presented in the Discussion section. Lastly, any references used will be included at the end of this report. 
+
+# Methodology
+## Data
+```{r}
+# Downloading library set ups
+library(tidyverse)
+library(lme4)
+library(pROC)
+library(haven)
+library(broom)
+
+# Reusing the cleaned data by my group from Problem Set 3
+survey_data <- read.csv("survey_data.csv", header = TRUE)
+census_data <- read.csv("census_data.csv", header = TRUE)
+```
+This data set is derived from Problem Set 3, which is a survey data of the Americans including multiple variables: sex, race, household_income, education, state, age_int and vote_trump. It has 4183 observations because some of the observations was filtered out due to missing variables. Variables exist in the survey_data also exist in census_data. 
+
+```{r}
+# creating a new column to demonstrate high household income group as 1, low household income as 0
+high_householdincome<-c('$150,000 to $174,999','$175,000 to $199,999','$200,000 to $249,999','250,000 and above')
+survey_data$high_income<-ifelse(survey_data$household_income %in%  high_householdincome, 1, 0)
+survey_data$high_income<-as.factor(survey_data$high_income)
+survey_data<-na.omit(survey_data)
+
+# creating a new column to demonstrate high educated group as 1, low educated group as 0
+high_edu <- c('Associate Degree', 'College Degree', 'Masters&Doc')
+survey_data$high_education <- ifelse(survey_data$education %in%  high_edu, 1, 0)
+survey_data$high_education <- as.factor(survey_data$high_education)
+survey_data<-na.omit(survey_data)
+```
+Creating new columns to separate both treatment and IV into two groups indicated by 1 and 0. high_householdincome includes $150,000 to $174,999, $175,000 to $199,999, $200,000 to $249,999 and 250,000 and above. High household income is indicated by '1'. Likewise, high_edu includes 'Associate Degree', 'College Degree' and 'Masters&Doc'. Any NA value from the data was omitted. 
+
+```{r}
+survey_data %>% 
+  mutate(high_education = as_factor(high_education)) %>% 
+  ggplot(aes(x = vote_trump, fill = high_education)) +
+  geom_histogram(position = "dodge", binwidth = 0.2) +
+  theme_minimal() +
+  labs(x = "Intention Voting for Trump",
+       y = "Number of people",
+       fill = "Education Level") +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(vars(survey_data$household_income))
+```
+Get an overview of the data, grouping by household incomes. High educated group is presented in blue, others are presented in red. 
+
+## Model
+```{r}
+vote_on_edu <- lm(vote_trump ~ high_education, data = survey_data)
+income_on_edu <- lm(high_income ~ high_education, data = survey_data)
+```
+Two logistic regression models are constructed here for instrumental variable estimations. The model vote_on_edu is constructed based on the relationship of outcome and IV. The model income_on_edu is constructed based on the relationship of treatment and IV. These two models will be used in the Result section for coefficient calculation to estimate the effect of household income on intention voting for Donald Trump. 
+
+# Results
+```{r}
+coef(vote_on_edu) / coef(income_on_edu)
+```
+Coefficient of both models are calculated for the IV estimation. The estimated coefficient of the effect of household income on intention voting for Trump is -0.007647827. This calculation is based on the division of coefficients from two logistic models. 
+
+The first model vote_on_edu tells us when the education score increase from 0 to 1, the intention voting for Trump is likely to decrease by 0.08825%. The second model income_on_edu tells us when the household income goes from low to high, the intention voting for Trump is likely to increase by 11.54%. 
+
+The IV estimation result indicates when household income(treatment) goes from 1 to 0(from high income to low income), the intention voting for Trump(outcome) is likely to decrease by 0.7647827%. Likewise, when household income goes from 0 to 1(from low income to high income), the intention voting for Trump is likely to increase by 0.7647827%.
+
+# Discussion
+## Summary
+In summary, an instrumental variable estimation was done to investigate the correlation and causal inference between household income of American families(treatment) and their intention voting for Trump for the 2020 American Federal Election(outcome). The instrumental variable used in this case is the education level of Americans. By constructing two logistic regression models of treatment on IV and outcome on IV, a coefficient can be calculate to estimate specific score of correlation when treatment changes. 
+
+## Conclusion
+The instrumental variable analysis showed there might be a relationship between American household income and intention of voting for the candidate of 2020 American Federal Election. Based on the result, high income families tend to vote for Donald Trump. Education level can have a causal effect on income of families as more educated people might earn more money than less educated people. By inferencing this result, the candidate group can use different strategies to get a better chance of winning the election. 
+
+## Weakness & Next Steps
+One weakness of the analysis can be that a two-stage regression can be equivalently considered as the first-stage regression. Also, it would be more accurate and practical if the household income variable was not divided into "high income" and "low income". There are also other potential or hidden instrumental variables affecting the decision of voting which was not considered and included in this analysis. 
+
+Future steps could be done to improve the accuracy of the prediction. A comparison between the voting intention and the actual result can be done. The same analysis can be applied in order to make better predictions in the future. Nonetheless, post-hoc analysis can also be done to improve the estimation. 
+
+# References
+Stephanie Glen. "Probability and Statistics Topic Index" From StatisticsHowTo.com: Elementary Statistics for the rest of us! https://www.statisticshowto.com/instrumental-variable/#:~:text=An%20instrumental%20variable%20(sometimes%20called,for%20unexpected%20behavior%20between%20variables
+
+Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686,https://doi.org/10.21105/joss.01686
+
+
+
+
+
+
+
+
+
+
+
+
+
